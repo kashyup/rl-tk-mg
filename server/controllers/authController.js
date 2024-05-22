@@ -13,11 +13,17 @@ const generateTokens = (user) => {
 exports.signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).send({ message: 'User already exists' });
+    }
+    // Create a new user
     const user = new User({ username, email, password });
     await user.save();
     res.status(201).send({ message: 'User created successfully' });
   } catch (err) {
-    res.status(400).send(err);
+    res.status(400).send({ message: err.message });
   }
 };
 
@@ -31,9 +37,13 @@ exports.login = async (req, res) => {
     const tokens = generateTokens(user);
     user.refreshToken = tokens.refreshToken;
     await user.save();
-    res.send(tokens);
+    res.send({
+      user: { id: user._id, username: user.username, email: user.email },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    });
   } catch (err) {
-    res.status(400).send(err);
+    res.status(400).send({ message: err.message });
   }
 };
 
